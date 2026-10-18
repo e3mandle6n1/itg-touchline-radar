@@ -2,12 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ballAt,
   buildIncidentTimeline,
+  buildPasses,
   buildPlayTrack,
   displayBall,
   dwellFor,
   incidentIndexAtPlay,
   minuteAt,
+  passFrom,
+  PASS_SPEED,
   scoreAt,
+  travelMs,
 } from "../match";
 
 function prevBallIndex(timeline, index) {
@@ -29,8 +33,11 @@ function startPlayIndex(playTrack) {
 export function usePlayback(match, { live = false, feedDone = true } = {}) {
   const playTrack = useMemo(() => buildPlayTrack(match), [match]);
   const timeline = useMemo(() => buildIncidentTimeline(playTrack), [playTrack]);
+  const passes = useMemo(() => buildPasses(playTrack), [playTrack]);
   const playTrackRef = useRef(playTrack);
+  const passesRef = useRef(passes);
   playTrackRef.current = playTrack;
+  passesRef.current = passes;
 
   const [index, setIndex] = useState(() => (live ? 0 : startPlayIndex(playTrack)));
   const [playing, setPlaying] = useState(live);
@@ -60,7 +67,11 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
     [playTrack, index, complete],
   );
   const rawBall = useMemo(() => ballAt(playTrack, index), [playTrack, index]);
-  const ball = useMemo(() => displayBall(event, rawBall), [event, rawBall]);
+  const activePass = playing ? passFrom(passes, index) : null;
+  const ball = useMemo(
+    () => (activePass ? activePass.to : displayBall(event, rawBall)),
+    [activePass, event, rawBall],
+  );
   const ended = atTip && complete && !playing;
   const eventIndex = useMemo(
     () => incidentIndexAtPlay(timeline, index),
@@ -107,14 +118,17 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
       if (!live || feedDone) setPlaying(false);
       return undefined;
     }
+    const pass = passFrom(passesRef.current, index);
     const current = track[index];
-    const from = ballAt(track, prevBallIndex(track, index));
-    const to = displayBall(current, ballAt(track, index));
-    const ms = dwellFor(current, from, to);
+    const from = ballAt(track, pass ? index : prevBallIndex(track, index));
+    const to = pass ? pass.to : displayBall(current, ballAt(track, index));
+    const ms = pass ? travelMs(from, to, PASS_SPEED) + 180 : dwellFor(current, from, to);
+    const jumpTo = pass ? pass.end : null;
     const timer = setTimeout(() => {
       setIndex((i) => {
         const latest = playTrackRef.current;
-        const n = Math.min(i + 1, Math.max(0, latest.length - 1));
+        const dest = jumpTo == null ? i + 1 : jumpTo;
+        const n = Math.min(dest, Math.max(0, latest.length - 1));
         if (n >= latest.length - 1 && (!live || feedDone)) setPlaying(false);
         return n;
       });
