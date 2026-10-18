@@ -1,14 +1,16 @@
 import { useEffect, useRef } from "react";
 import { BALL_SPEED } from "../match";
 
-export function useSmoothBall(ref, target, playing, onPos) {
+export function useSmoothBall(ref, target, playing, onPos, speed = BALL_SPEED) {
   const targetRef = useRef(target);
   const posRef = useRef({ x: target.x, y: target.y });
   const onPosRef = useRef(onPos);
+  const speedRef = useRef(speed);
   const lastRef = useRef(0);
 
   targetRef.current = target;
   onPosRef.current = onPos;
+  speedRef.current = speed;
 
   useEffect(() => {
     const el = ref.current;
@@ -31,7 +33,7 @@ export function useSmoothBall(ref, target, playing, onPos) {
         pos.x = goal.x;
         pos.y = goal.y;
       } else {
-        const step = Math.min(gap, BALL_SPEED * dt);
+        const step = Math.min(gap, speedRef.current * dt);
         pos.x += (dx / gap) * step;
         pos.y += (dy / gap) * step;
       }
