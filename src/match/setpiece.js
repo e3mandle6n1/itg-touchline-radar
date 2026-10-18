@@ -30,12 +30,22 @@ function isFreeKickMoment(event) {
   return isFreeKickTake(event);
 }
 
+const GOALLINE = { left: 1.5, right: 98.5 };
+const TOUCHLINE = { top: (1.5 / 64) * 100, bottom: (62.5 / 64) * 100 };
+
 function cornerFlagTarget(event) {
   if (eventKind(event) !== "corner" || !event?.team) return null;
   const top = (event.y ?? 50) < 50;
-  const y = top ? 3.2 : 96.8;
-  if (event.team === "away") return { x: 3.2, y };
-  return { x: 96.8, y };
+  const y = top ? TOUCHLINE.top : TOUCHLINE.bottom;
+  if (event.team === "away") return { x: GOALLINE.left, y };
+  return { x: GOALLINE.right, y };
+}
+
+export function throwInSpot(event) {
+  if (eventKind(event) !== "throwin" || event?.x == null) return null;
+  const x = Math.min(GOALLINE.right, Math.max(GOALLINE.left, event.x));
+  const y = (event.y ?? 50) < 50 ? TOUCHLINE.top : TOUCHLINE.bottom;
+  return { x, y };
 }
 
 function freeKickSpot(event) {

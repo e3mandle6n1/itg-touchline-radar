@@ -21,7 +21,14 @@ describe("displayBall", () => {
     expect(displayBall({ incident: "kickoff" }, fallback)).toEqual({ x: 50, y: 50 });
     expect(
       displayBall({ incident: "corner", team: "away", y: 80 }, fallback),
-    ).toEqual({ x: 3.2, y: 96.8 });
-    expect(displayBall({ incident: "throwin", x: 40, y: 10 }, fallback)).toBe(fallback);
+    ).toEqual({ x: 1.5, y: 97.65625 });
+    expect(displayBall({ incident: "throwin", x: 40, y: 10 }, fallback)).toEqual({
+      x: 40,
+      y: 2.34375,
+    });
+    expect(displayBall({ incident: "throwin", x: 55, y: 80 }, fallback)).toEqual({
+      x: 55,
+      y: 97.65625,
+    });
   });
 });

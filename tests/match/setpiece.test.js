@@ -67,8 +67,8 @@ describe("linkFreeKickCards", () => {
 describe("setPieceSpot / delivery / kick moment", () => {
   it("spot: flag or coords", () => {
     expect(setPieceSpot({ incident: "corner", team: "home", y: 20 })).toEqual({
-      x: 96.8,
-      y: 3.2,
+      x: 98.5,
+      y: 2.34375,
     });
     expect(setPieceSpot({ incident: "freekick", team: "home", x: 70, y: 40 })).toEqual({
       x: 70,
