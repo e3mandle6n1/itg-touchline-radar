@@ -1,11 +1,11 @@
 import { BALL_SPEED } from "./constants.js";
 import { clampPitch } from "./util.js";
 
-export function travelMs(from, to) {
+export function travelMs(from, to, speed = BALL_SPEED) {
   if (!from || !to) return 0;
   const gap = Math.hypot(to.x - from.x, to.y - from.y);
   if (gap < 0.4) return 50;
-  return Math.round((gap / BALL_SPEED) * 1000) + 40;
+  return Math.round((gap / speed) * 1000) + 40;
 }
 
 export function goalNetTarget(event) {
