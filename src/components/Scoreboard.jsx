@@ -1,7 +1,9 @@
 export default function Scoreboard({ match, score, event, minute, ended }) {
   const phase = ended || event?.type === "match_ended"
     ? "Ended"
-    : event?.clock || "";
+    : event?.incident
+      ? event.clock || ""
+      : `${minute}'`;
   const showHt = minute >= 45;
 
   return (
