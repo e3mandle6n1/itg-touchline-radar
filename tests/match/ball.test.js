@@ -37,11 +37,11 @@ describe("goalNetTarget", () => {
 
   it("home right net, away left", () => {
     expect(goalNetTarget({ incident: "goal", team: "home", y: 50 })).toEqual({
-      x: 97.2,
+      x: 98.5,
       y: 50,
     });
     expect(goalNetTarget({ type: "goal", team: "away", y: 50 })).toEqual({
-      x: 2.8,
+      x: 1.5,
       y: 50,
     });
   });

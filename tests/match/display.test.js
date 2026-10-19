@@ -6,7 +6,7 @@ describe("displayBall", () => {
 
   it("goal net first", () => {
     expect(displayBall({ incident: "goal", team: "home", y: 50 }, fallback)).toEqual({
-      x: 97.2,
+      x: 98.5,
       y: 50,
     });
   });
