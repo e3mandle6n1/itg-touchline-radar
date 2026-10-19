@@ -24,6 +24,8 @@ import {
   isCardEvent,
   isInShootout,
   isRestart,
+  MATCH_ANNOUNCE_MS,
+  partitionTitle,
   isSetPieceKickMoment,
   isShootoutGoal,
   isShootoutKick,
@@ -48,19 +50,9 @@ const SITUATION_DWELL_MS = 1600;
 const GOAL_TIP_HOLD_MS = 520;
 const GOAL_SCORE_MS = 1600;
 const FOUL_BEFORE_CARD_MS = 1100;
-const MATCH_ANNOUNCE_MS = 2200;
 const PEN_ABOUT_MS = 2000;
 const PEN_FIRST_MS = 2000;
 const PEN_SPOT_HOLD_MS = 700;
-
-function isOpeningKickoff(event) {
-  const kind = event?.incident || event?.type;
-  if (kind !== "periodstart" && kind !== "kickoff") return false;
-  const clock = String(event.clock || event.text || "");
-  if (/2nd|second/i.test(clock)) return false;
-  if (/1st|first/i.test(clock)) return true;
-  return (event.minute ?? 0) === 0;
-}
 
 export default function LiveAction({ match, event, ball, score, playing, playTrack = [], playIndex = 0 }) {
   const kind = event?.incident || event?.type;
@@ -78,7 +70,8 @@ export default function LiveAction({ match, event, ball, score, playing, playTra
   const isSub = kind === "substitution" && hasSitover(event);
   const isThrowIn = kind === "throwin";
   const isKickoff = isRestart(event) && !penStart;
-  const isOpenKick = isKickoff && isOpeningKickoff(event);
+  const boundaryTitle = partitionTitle(event);
+  const boundaryIsStart = boundaryTitle && (kind === "periodstart" || kind === "kickoff");
   const isCorner = kind === "corner";
   const isFreeKick = kind === "freekick" || kind === "freekick_taken";
   const isOffside = kind === "offside";
@@ -112,8 +105,8 @@ export default function LiveAction({ match, event, ball, score, playing, playTra
   const cardKey = isCard
     ? `card-${event?.minute}-${event?.added}-${event?.player}-${event?.card}-${withFreeKick}`
     : "";
-  const openKickKey = isOpenKick
-    ? `open-${kind}-${event?.minute}-${event?.added}-${event?.clock}`
+  const boundaryKey = boundaryTitle
+    ? `${kind}-${event?.minute}-${event?.added}-${event?.clock}`
     : "";
   const foulTipEvent = withFreeKick
     ? {
@@ -223,11 +216,11 @@ export default function LiveAction({ match, event, ball, score, playing, playTra
 
   useEffect(() => {
     startDoneRef.current = false;
-    setStartBeat(isOpenKick ? "idle" : "kickoff");
-  }, [openKickKey, isOpenKick]);
+    setStartBeat(boundaryTitle ? "idle" : "kickoff");
+  }, [boundaryKey, boundaryTitle]);
 
   useEffect(() => {
-    if (!isOpenKick) {
+    if (!boundaryTitle) {
       setStartBeat("kickoff");
       return undefined;
     }
@@ -235,17 +228,18 @@ export default function LiveAction({ match, event, ball, score, playing, playTra
       setStartBeat(startDoneRef.current ? "kickoff" : "idle");
       return undefined;
     }
-    if (startDoneRef.current) {
+    if (boundaryIsStart && startDoneRef.current) {
       setStartBeat("kickoff");
       return undefined;
     }
     setStartBeat("announce");
+    if (!boundaryIsStart) return undefined;
     const timer = setTimeout(() => {
       startDoneRef.current = true;
       setStartBeat("kickoff");
     }, MATCH_ANNOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [openKickKey, isOpenKick, playing]);
+  }, [boundaryKey, boundaryTitle, boundaryIsStart, playing]);
 
   useEffect(() => {
     if (!isGoal || !origin || !net || !playing) return undefined;
@@ -434,10 +428,10 @@ export default function LiveAction({ match, event, ball, score, playing, playTra
           event={event}
         />
       ) : null}
-      {isOpenKick && startBeat === "announce" ? (
-        <MatchAnnounce key={`start-${openKickKey}`} title="Match has started" />
+      {boundaryTitle && startBeat === "announce" ? (
+        <MatchAnnounce key={`boundary-${boundaryKey}`} title={boundaryTitle} />
       ) : null}
-      {isKickoff && (!isOpenKick || startBeat === "kickoff") ? (
+      {isKickoff && (!boundaryIsStart || startBeat === "kickoff") ? (
         <KickoffTip
           key={`kickoff-${kind}-${event?.minute}-${event?.added}-${event?.clock}`}
           match={match}
@@ -550,7 +544,7 @@ export default function LiveAction({ match, event, ball, score, playing, playTra
         />
       ) : null}
       {!inPens && !isGoal && !isCard && !isSub && !isThrowIn && !isCorner && !isShot && !isBlocked && !isSave && !isInjury
-        && !(isOpenKick && startBeat !== "kickoff") ? (
+        && !(boundaryIsStart && startBeat !== "kickoff") ? (
         <PitchIncident
           key={`${event?.type}-${event?.minute}-${event?.added}-${event?.player}-${score.home}-${score.away}`}
           match={match}

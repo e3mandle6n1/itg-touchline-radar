@@ -47,6 +47,7 @@ export const PHASE_LABELS = {
 
 export const BALL_SPEED = 36;
 export const PASS_SPEED = 34;
+export const MATCH_ANNOUNCE_MS = 2200;
 
 export const EVENT_ICONS = {
   goal: "goal",

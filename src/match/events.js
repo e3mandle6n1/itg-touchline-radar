@@ -1,6 +1,12 @@
-import { EVENT_LABELS, EVENT_ICONS, SITOVER_TYPES, HIGHLIGHT_SITOVER } from "./constants.js";
+import {
+  EVENT_LABELS,
+  EVENT_ICONS,
+  SITOVER_TYPES,
+  HIGHLIGHT_SITOVER,
+  MATCH_ANNOUNCE_MS,
+} from "./constants.js";
 import { cardColour, clampPitch } from "./util.js";
-import { isShootoutPeriod, isShootoutPeriodStart } from "./shootout.js";
+import { isShootoutPeriod } from "./shootout.js";
 
 export function hasSitover(event) {
   const type = event?.incident || event?.type;
@@ -41,6 +47,32 @@ export function incidentTitle(event) {
   return EVENT_LABELS[kind] || kind;
 }
 
+export function partitionTitle(event) {
+  const kind = event?.incident || event?.type;
+  if (kind !== "periodstart" && kind !== "kickoff" && kind !== "periodscore") return null;
+  const blob = `${event?.clock || ""} ${event?.text || ""}`;
+  const extra = /extra|\bet\b/i.test(blob);
+  const second = /2nd|second/i.test(blob);
+  const first = /1st|first/i.test(blob);
+
+  if (kind === "periodscore") {
+    if (/full|\bft\b|normal/i.test(blob)) return "Second half has ended";
+    if (extra) {
+      if ((event.minute ?? 0) >= 115 || second) return "Extra time has ended";
+      return "First half of extra time has ended";
+    }
+    if (first || /half/i.test(blob)) return "First half has ended";
+    return null;
+  }
+
+  if (/penalt/i.test(blob)) return null;
+  if (extra && second) return "Second half of extra time has started";
+  if (extra) return "Extra time has started";
+  if (second) return "Second half has started";
+  if (first || (kind !== "kickoff" && (event.minute ?? 0) === 0)) return "Match has started";
+  return null;
+}
+
 export function holdFor(event) {
   if (!event) return 280;
   const kind = event.incident || event.type;
@@ -76,14 +108,10 @@ export function holdFor(event) {
       return 320;
     case "kickoff":
       return 1800;
-    case "periodstart": {
-      if (isShootoutPeriodStart(event)) return 4200;
-      const clock = String(event.clock || event.text || "");
-      const opening = /1st|first/i.test(clock)
-        || ((event.minute ?? 0) === 0 && !/2nd|second/i.test(clock));
-      return opening ? 4200 : 1600;
-    }
+    case "periodstart":
+      return MATCH_ANNOUNCE_MS + 2000;
     case "periodscore":
+      return MATCH_ANNOUNCE_MS;
     case "match_ended":
       return 700;
     default:
