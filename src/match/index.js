@@ -71,3 +71,10 @@ export {
 } from "./track.js";
 export { H2H, formWinPct } from "./h2h.js";
 export { statsAt } from "./stats.js";
+export {
+  kickoffDate,
+  kickoffLabel,
+  countdownParts,
+  winChance,
+  goalsByPeriod,
+} from "./preview.js";
