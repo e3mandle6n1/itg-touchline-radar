@@ -4,7 +4,7 @@ import { countdownParts, formWinPct, goalsByPeriod, kickoffDate, winChance } fro
 function CardFooter() {
   return (
     <div className="card-footer" aria-hidden="true">
-      <span className="brand">Touchline</span>
+      <span className="brand">Touchline Radar</span>
     </div>
   );
 }
