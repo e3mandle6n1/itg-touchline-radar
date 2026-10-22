@@ -1,8 +1,16 @@
-export default function Scoreboard({ match, score, event, minute, ended }) {
-  const phase = ended || event?.type === "match_ended"
-    ? "Ended"
-    : event?.clock || "";
-  const showHt = minute >= 45;
+import { kickoffLabel } from "../match";
+
+export default function Scoreboard({ match, score, event, minute, ended, preview }) {
+  const phase = preview
+    ? kickoffLabel()
+    : ended || event?.type === "match_ended"
+      ? "Ended"
+      : event?.incident
+        ? event.clock || ""
+        : `${minute}'`;
+  const showHt = !preview && minute >= 45;
+  const home = preview ? 0 : score.home;
+  const away = preview ? 0 : score.away;
 
   return (
     <header className="scoreboard">
@@ -12,7 +20,7 @@ export default function Scoreboard({ match, score, event, minute, ended }) {
       </div>
       <div className="status">
         <span className="phase">{phase}</span>
-        <strong>{score.home} : {score.away}</strong>
+        <strong>{home} : {away}</strong>
         <span className="ht">{showHt ? `HT ${match.score.ht}` : ""}</span>
       </div>
       <div className="team away">

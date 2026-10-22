@@ -95,7 +95,7 @@ function TimelineList({ timeline, index, onSeek, sheetRef }) {
   );
 }
 
-export default function MatchTabs({ match, timeline, index, onSeek, playTrack, playIndex }) {
+export default function MatchTabs({ match, timeline, index, onSeek, playTrack, playIndex, preview }) {
   const [tab, setTab] = useState("timeline");
   const [sheetOpen, setSheetOpen] = useState(true);
   const sheetRef = useRef(null);
@@ -134,14 +134,19 @@ export default function MatchTabs({ match, timeline, index, onSeek, playTrack, p
           )}
           {tab === "head" && <HeadToHead match={match} />}
           {tab === "standings" && <StandingsTable rows={match.standings} />}
-          {tab === "timeline" && (
+          {tab === "timeline" && (preview ? (
+            <div className="tl-live">
+              <div className="tl-heading">Timeline</div>
+              <p className="tl-wait">Waiting for kickoff.</p>
+            </div>
+          ) : (
             <TimelineList
               timeline={timeline}
               index={index}
               onSeek={onSeek}
               sheetRef={sheetRef}
             />
-          )}
+          ))}
           {tab === "lineups" && <LineupsPanel match={match} />}
         </div>
       ) : null}

@@ -1,5 +1,5 @@
 import { goalNetTarget, shotFlightTarget, saveSpot, centreSpot } from "./ball.js";
-import { setPieceSpot } from "./setpiece.js";
+import { setPieceSpot, throwInSpot } from "./setpiece.js";
 import {
   isShootoutKick,
   isShootoutScored,
@@ -18,6 +18,7 @@ export function displayBall(event, fallback) {
     || saveSpot(event)
     || centreSpot(event)
     || setPieceSpot(event)
+    || throwInSpot(event)
     || fallback;
 }
 

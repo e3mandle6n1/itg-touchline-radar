@@ -8,6 +8,7 @@ import {
   isCardEvent,
   isShootoutGoal,
   momentumIcon,
+  partitionTitle,
 } from "../../src/match/events.js";
 
 describe("hasSitover", () => {
@@ -78,8 +79,62 @@ describe("holdFor", () => {
     expect(holdFor(null)).toBe(280);
   });
 
-  it("1st kick-off longer", () => {
+  it("half changes hold for the flag", () => {
     expect(holdFor({ incident: "periodstart", clock: "1st half", minute: 0 })).toBe(4200);
-    expect(holdFor({ incident: "periodstart", clock: "2nd half" })).toBe(1600);
+    expect(holdFor({ incident: "periodstart", clock: "2nd half" })).toBe(4200);
+    expect(holdFor({ incident: "periodscore", clock: "1st half" })).toBe(2200);
+    expect(holdFor({ incident: "match_ended" })).toBe(700);
+  });
+});
+
+describe("partitionTitle", () => {
+  it("names each period boundary", () => {
+    expect(partitionTitle({ incident: "periodstart", clock: "1st half", minute: 0 })).toBe(
+      "Match has started",
+    );
+    expect(partitionTitle({ incident: "periodscore", clock: "1st half", minute: 45 })).toBe(
+      "First half has ended",
+    );
+    expect(partitionTitle({ incident: "periodstart", clock: "2nd half", minute: 45 })).toBe(
+      "Second half has started",
+    );
+    expect(partitionTitle({
+      incident: "periodscore",
+      clock: "Full Time",
+      minute: 90,
+      text: "Still 0-0 after 90. Extra time.",
+    })).toBe("Second half has ended");
+    expect(partitionTitle({
+      incident: "periodstart",
+      clock: "Extra time · 1st half",
+      minute: 90,
+    })).toBe("Extra time has started");
+    expect(partitionTitle({
+      incident: "periodscore",
+      clock: "Extra time",
+      minute: 105,
+      text: "End of the first period of extra time.",
+    })).toBe("First half of extra time has ended");
+    expect(partitionTitle({
+      incident: "periodstart",
+      clock: "Extra time · 2nd half",
+      minute: 105,
+    })).toBe("Second half of extra time has started");
+    expect(partitionTitle({
+      incident: "periodscore",
+      clock: "Extra Time",
+      minute: 120,
+      text: "No winner in extra time. Penalties.",
+    })).toBe("Extra time has ended");
+  });
+
+  it("leaves penalties and open play alone", () => {
+    expect(partitionTitle({
+      incident: "periodstart",
+      clock: "Penalties",
+      text: "We go to a penalty shoot-out.",
+    })).toBeNull();
+    expect(partitionTitle({ incident: "kickoff", minute: 23, clock: "23'" })).toBeNull();
+    expect(partitionTitle({ incident: "goal", team: "home" })).toBeNull();
   });
 });

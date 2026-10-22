@@ -17,12 +17,13 @@ export default function LiveTracker({ match, playback }) {
     playTrack,
     index,
     playing,
+    preview,
   } = playback;
 
   return (
     <section className="widget">
-      <Scoreboard match={match} score={score} event={event} minute={minute} ended={ended} />
-      <Momentum match={match} minute={minute} />
+      <Scoreboard match={match} score={score} event={event} minute={minute} ended={ended} preview={preview} />
+      <Momentum match={match} minute={preview ? -1 : minute} />
       <PitchStage
         match={match}
         event={event}
@@ -30,10 +31,11 @@ export default function LiveTracker({ match, playback }) {
         ended={ended}
         score={score}
         playing={playing}
+        preview={preview}
         playTrack={playTrack}
         playIndex={index}
       />
-      <Caption event={event} match={match} />
+      {!preview && <Caption event={event} match={match} />}
       <MatchTabs
         match={match}
         timeline={timeline}
@@ -41,6 +43,7 @@ export default function LiveTracker({ match, playback }) {
         onSeek={seekEvent}
         playTrack={playTrack}
         playIndex={index}
+        preview={preview}
       />
     </section>
   );

@@ -325,6 +325,17 @@ button, input { font: inherit; }
   stroke-width: 2.5px;
 }
 
+.bspot-pass-line {
+  stroke: #fff;
+  stroke-width: 1.7px;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+}
+
+.bspot-pass-live {
+  opacity: 0;
+}
+
 .bspot-trail-line.is-goal-flight {
   stroke-width: 2.8px;
   stroke-opacity: 0.72;
@@ -1645,14 +1656,17 @@ button, input { font: inherit; }
 }
 
 .pitch-card {
+  position: relative;
   width: 100%;
   height: 100%;
-  padding: 8px 14px 0;
+  padding: 8px 14px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
   box-sizing: border-box;
+  gap: 0.2rem;
 }
 
 .card-title {
@@ -1674,9 +1688,13 @@ button, input { font: inherit; }
 }
 
 .card-footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   height: 26px;
-  margin-top: auto;
+  margin-top: 0;
   flex: none;
   border-top: 1px solid rgba(255, 255, 255, 0.16);
   display: grid;
@@ -1720,7 +1738,7 @@ button, input { font: inherit; }
 .card-divider {
   width: 100%;
   height: 1px;
-  margin: 0.4rem 0 0.35rem;
+  margin: 0.1rem 0;
   background: rgba(255, 255, 255, 0.22);
   flex: none;
 }
@@ -1975,6 +1993,113 @@ button, input { font: inherit; }
   height: 0.85rem;
   margin-left: 0.15rem;
   opacity: 0.9;
+}
+
+.kick-clock {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.kick-unit {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+}
+
+.kick-unit span:last-child {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.58rem;
+}
+
+.period-chart {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.7rem repeat(6, 1fr);
+  column-gap: 0.15rem;
+  align-items: end;
+}
+
+.period-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 78px;
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: right;
+}
+
+.period-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.period-bars {
+  height: 78px;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.period-bars i {
+  display: block;
+  width: 7px;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+}
+
+.period-col em {
+  margin-top: 0.15rem;
+  font-style: normal;
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.win-nums {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  width: 100%;
+}
+
+.win-nums div {
+  display: grid;
+  justify-items: center;
+  gap: 0.12rem;
+}
+
+.win-nums strong {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.win-nums span {
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.win-nums div:nth-child(2) strong,
+.win-nums div:nth-child(2) span {
+  color: #c5cad3;
+}
+
+.win-bar {
+  display: flex;
+  width: 86%;
+  height: 8px;
+  margin-top: 0.35rem;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.win-bar i {
+  display: block;
+  height: 100%;
 }
 
 .stat-rows {
@@ -2333,7 +2458,6 @@ button, input { font: inherit; }
 
 .pitch-nav.prev img {
   margin-left: -1px;
-  transform: rotate(180deg);
 }
 
 .pitch-nav.next img {
@@ -2342,6 +2466,7 @@ button, input { font: inherit; }
 
 .pitch-dots {
   position: static;
+  flex: none;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -3140,6 +3265,12 @@ button, input { font: inherit; }
 .tl-periods {
   display: flex;
   flex-direction: column;
+}
+
+.tl-wait {
+  margin: 0.35rem 0 0.2rem;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .tl-heading {

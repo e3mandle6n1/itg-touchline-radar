@@ -137,7 +137,7 @@ export default function App() {
     <>
       <header className="app-bar">
         <div className="app-bar-row">
-          <strong className="brand">Touchline</strong>
+          <strong className="brand">Touchline Radar</strong>
           <div className="app-bar-controls">
             {catalog ? (
               <label className="match-picker">

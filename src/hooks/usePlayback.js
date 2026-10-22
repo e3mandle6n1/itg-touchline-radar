@@ -2,12 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ballAt,
   buildIncidentTimeline,
+  buildPasses,
   buildPlayTrack,
   displayBall,
   dwellFor,
   incidentIndexAtPlay,
   minuteAt,
+  passFrom,
+  PASS_SPEED,
   scoreAt,
+  travelMs,
 } from "../match";
 
 function prevBallIndex(timeline, index) {
@@ -29,16 +33,21 @@ function startPlayIndex(playTrack) {
 export function usePlayback(match, { live = false, feedDone = true } = {}) {
   const playTrack = useMemo(() => buildPlayTrack(match), [match]);
   const timeline = useMemo(() => buildIncidentTimeline(playTrack), [playTrack]);
+  const passes = useMemo(() => buildPasses(playTrack), [playTrack]);
   const playTrackRef = useRef(playTrack);
+  const passesRef = useRef(passes);
   playTrackRef.current = playTrack;
+  passesRef.current = passes;
 
   const [index, setIndex] = useState(() => (live ? 0 : startPlayIndex(playTrack)));
   const [playing, setPlaying] = useState(live);
+  const [started, setStarted] = useState(live);
   const primed = useRef(false);
   const matchKey = match?.id;
 
   useEffect(() => {
     primed.current = false;
+    setStarted(live);
     setIndex(live ? 0 : startPlayIndex(playTrackRef.current));
     setPlaying(live);
   }, [matchKey, live]);
@@ -60,8 +69,13 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
     [playTrack, index, complete],
   );
   const rawBall = useMemo(() => ballAt(playTrack, index), [playTrack, index]);
-  const ball = useMemo(() => displayBall(event, rawBall), [event, rawBall]);
+  const activePass = playing ? passFrom(passes, index) : null;
+  const ball = useMemo(
+    () => (activePass ? activePass.to : displayBall(event, rawBall)),
+    [activePass, event, rawBall],
+  );
   const ended = atTip && complete && !playing;
+  const preview = !live && !started && !playing;
   const eventIndex = useMemo(
     () => incidentIndexAtPlay(timeline, index),
     [timeline, index],
@@ -73,12 +87,14 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
   const pause = useCallback(() => setPlaying(false), []);
 
   const seek = useCallback((next) => {
+    setStarted(true);
     setPlaying(false);
     const len = playTrackRef.current.length;
     setIndex(Math.max(0, Math.min(Math.max(0, len - 1), next)));
   }, []);
 
   const seekEvent = useCallback((markIdx) => {
+    setStarted(true);
     setPlaying(false);
     const mark = timeline[markIdx];
     if (!mark) return;
@@ -86,6 +102,7 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
   }, [timeline, playTrack.length]);
 
   const toggle = useCallback(() => {
+    setStarted(true);
     setPlaying((current) => {
       if (current) return false;
       const track = playTrackRef.current;
@@ -107,14 +124,17 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
       if (!live || feedDone) setPlaying(false);
       return undefined;
     }
+    const pass = passFrom(passesRef.current, index);
     const current = track[index];
-    const from = ballAt(track, prevBallIndex(track, index));
-    const to = displayBall(current, ballAt(track, index));
-    const ms = dwellFor(current, from, to);
+    const from = ballAt(track, pass ? index : prevBallIndex(track, index));
+    const to = pass ? pass.to : displayBall(current, ballAt(track, index));
+    const ms = pass ? travelMs(from, to, PASS_SPEED) + 180 : dwellFor(current, from, to);
+    const jumpTo = pass ? pass.end : null;
     const timer = setTimeout(() => {
       setIndex((i) => {
         const latest = playTrackRef.current;
-        const n = Math.min(i + 1, Math.max(0, latest.length - 1));
+        const dest = jumpTo == null ? i + 1 : jumpTo;
+        const n = Math.min(dest, Math.max(0, latest.length - 1));
         if (n >= latest.length - 1 && (!live || feedDone)) setPlaying(false);
         return n;
       });
@@ -132,6 +152,7 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
     minute,
     ball,
     ended,
+    preview,
     playing,
     live,
     seek,

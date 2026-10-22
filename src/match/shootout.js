@@ -46,7 +46,7 @@ export function shootoutSpot() {
 }
 
 export function shootoutNetTarget() {
-  return { x: 2.8, y: 50 };
+  return { x: 1.5, y: 50 };
 }
 
 export function shootoutMissTarget(event) {
