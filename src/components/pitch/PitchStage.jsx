@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import PitchMarkings from "./PitchMarkings.jsx";
 import LiveAction, { MATCH_ANNOUNCE_MS } from "./LiveAction.jsx";
 import { MatchAnnounce, endedSlides } from "./EndedCards.jsx";
+import { prematchSlides } from "./PrematchCards.jsx";
 
-export default function PitchStage({ match, event, ball, ended, score, playing, playTrack, playIndex }) {
+export default function PitchStage({ match, event, ball, ended, score, playing, preview, playTrack, playIndex }) {
   const [page, setPage] = useState(0);
   const [endBeat, setEndBeat] = useState("live");
 
   useEffect(() => {
-    if (!ended) {
+    if (preview || !ended) {
       setEndBeat("live");
       setPage(0);
       return undefined;
@@ -17,9 +18,11 @@ export default function PitchStage({ match, event, ball, ended, score, playing, 
     setPage(0);
     const timer = setTimeout(() => setEndBeat("cards"), MATCH_ANNOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [ended]);
+  }, [ended, preview]);
 
-  const slides = ended && endBeat === "cards"
+  const slides = preview
+    ? prematchSlides(match)
+    : ended && endBeat === "cards"
     ? endedSlides(match, score)
     : [["live", (
       <LiveAction
@@ -35,7 +38,7 @@ export default function PitchStage({ match, event, ball, ended, score, playing, 
 
   const current = slides[page] || slides[0];
   const many = slides.length > 1;
-  const showAnnounce = ended && endBeat === "announce";
+  const showAnnounce = !preview && ended && endBeat === "announce";
 
   return (
     <div className="pitch-wrap">

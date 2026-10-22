@@ -41,11 +41,13 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
 
   const [index, setIndex] = useState(() => (live ? 0 : startPlayIndex(playTrack)));
   const [playing, setPlaying] = useState(live);
+  const [started, setStarted] = useState(live);
   const primed = useRef(false);
   const matchKey = match?.id;
 
   useEffect(() => {
     primed.current = false;
+    setStarted(live);
     setIndex(live ? 0 : startPlayIndex(playTrackRef.current));
     setPlaying(live);
   }, [matchKey, live]);
@@ -73,6 +75,7 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
     [activePass, event, rawBall],
   );
   const ended = atTip && complete && !playing;
+  const preview = !live && !started && !playing;
   const eventIndex = useMemo(
     () => incidentIndexAtPlay(timeline, index),
     [timeline, index],
@@ -84,12 +87,14 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
   const pause = useCallback(() => setPlaying(false), []);
 
   const seek = useCallback((next) => {
+    setStarted(true);
     setPlaying(false);
     const len = playTrackRef.current.length;
     setIndex(Math.max(0, Math.min(Math.max(0, len - 1), next)));
   }, []);
 
   const seekEvent = useCallback((markIdx) => {
+    setStarted(true);
     setPlaying(false);
     const mark = timeline[markIdx];
     if (!mark) return;
@@ -97,6 +102,7 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
   }, [timeline, playTrack.length]);
 
   const toggle = useCallback(() => {
+    setStarted(true);
     setPlaying((current) => {
       if (current) return false;
       const track = playTrackRef.current;
@@ -146,6 +152,7 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
     minute,
     ball,
     ended,
+    preview,
     playing,
     live,
     seek,
