@@ -1,0 +1,67 @@
+name: touchline-radar
+
+x-hub-env: &hub-env
+  EVENT_HUB_CONNECTION: Endpoint=sb://emulator;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
+  EVENT_HUB_NAME: matches
+  EVENT_HUB_CONSUMER_GROUP: bridge
+
+services:
+  emulator:
+    image: mcr.microsoft.com/azure-messaging/eventhubs-emulator:latest
+    pull_policy: always
+    volumes:
+      - ./infra/eventhubs/config.json:/Eventhubs_Emulator/ConfigFiles/Config.json:ro
+    ports:
+      - "5672:5672"
+    environment:
+      BLOB_SERVER: azurite
+      METADATA_SERVER: azurite
+      ACCEPT_EULA: "Y"
+    depends_on:
+      - azurite
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    pull_policy: always
+
+  bridge:
+    build:
+      context: .
+      dockerfile: infra/eventhubs/Dockerfile
+    environment:
+      <<: *hub-env
+      BRIDGE_PORT: "8787"
+      BRIDGE_HOST: 0.0.0.0
+    ports:
+      - "8787:8787"
+    depends_on:
+      - emulator
+    restart: unless-stopped
+
+  publisher:
+    build:
+      context: .
+      dockerfile: infra/eventhubs/Dockerfile
+    environment: *hub-env
+    volumes:
+      - ./feeds/matches:/matches:ro
+    command: ["node", "scripts/publish-feed.mjs", "/matches/01-northbridge.json"]
+    depends_on:
+      - emulator
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/web/Dockerfile
+    environment:
+      HOST: 0.0.0.0
+      BRIDGE_URL: http://bridge:8787
+      FEEDS_ROOT: /feeds
+    ports:
+      - "4173:4173"
+    volumes:
+      - ./feeds:/feeds:ro
+    depends_on:
+      - bridge
+    restart: unless-stopped

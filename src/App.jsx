@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Transport from "./components/Transport.jsx";
-import { useBridgeFeed } from "./hooks/useBridgeFeed.js";
+import { useHubFeed } from "./hooks/useHubFeed.js";
 import { usePlayback } from "./hooks/usePlayback.js";
 import LiveTracker from "./views/LiveTracker.jsx";
 
@@ -69,11 +69,7 @@ export default function App() {
   const [sourceMatch, setSourceMatch] = useState(null);
   const [error, setError] = useState("");
 
-  const bridge = useBridgeFeed(sourceMatch, {
-    enabled: live,
-    intervalMs: 240,
-    batch: 1,
-  });
+  const bridge = useHubFeed(matchId, { enabled: live });
 
   useEffect(() => {
     fetch("/matches/index.json")
@@ -92,7 +88,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!catalog || !matchId) return undefined;
+    if (!catalog || !matchId || live) return undefined;
     const entry = catalog.matches.find((row) => row.id === matchId);
     if (!entry) {
       setError(`Unknown match: ${matchId}`);
@@ -116,7 +112,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [catalog, matchId]);
+  }, [catalog, matchId, live]);
 
   useEffect(() => {
     if (!matchId) return;
@@ -125,13 +121,15 @@ export default function App() {
 
   const entry = catalog?.matches.find((row) => row.id === matchId);
   const match = live ? bridge.match : sourceMatch;
-  const feedLabel = live
-    ? bridge.done
-      ? `Bridge · done ${bridge.received}/${bridge.total}`
-      : bridge.streaming
-        ? `Bridge · ${bridge.received}/${bridge.total}`
-        : `Bridge · paused ${bridge.received}/${bridge.total}`
-    : null;
+  const feedError = live ? bridge.error : "";
+  let feedLabel = null;
+  if (live && !bridge.total) feedLabel = "Bridge · waiting";
+  if (live && bridge.total) {
+    const count = `${bridge.received}/${bridge.total}`;
+    if (bridge.done) feedLabel = `Bridge · done ${count}`;
+    else if (bridge.streaming) feedLabel = `Bridge · ${count}`;
+    else feedLabel = `Bridge · paused ${count}`;
+  }
 
   return (
     <>
@@ -175,8 +173,8 @@ export default function App() {
           <p>{entry.title}{live ? " · Bridge" : ""}</p>
         ) : null}
       </header>
-      {error ? <p className="error">{error}</p> : null}
-      {!error && !match ? <p className="loading">Loading match...</p> : null}
+      {error || feedError ? <p className="error">{error || feedError}</p> : null}
+      {!error && !feedError && !match ? <p className="loading">Loading match...</p> : null}
       {match ? (
         <Tracker
           key={`${matchId}-${live ? "bridge" : "replay"}`}
