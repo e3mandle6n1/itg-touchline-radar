@@ -1,4 +1,4 @@
-import { clampPitch, attackDepth, eventKind, clockKey } from "./util.js";
+import { clampPitch, attackDepth, eventKind, clockKey, ATTACK_FROM } from "./util.js";
 import { travelMs } from "./ball.js";
 
 function isCornerTake(event) {
@@ -99,8 +99,7 @@ export function markSetPieces(playTrack) {
     }
     if (kind === "freekick" || kind === "freekick_taken") {
       const depth = attackDepth(row);
-      const canThreaten = depth != null && depth >= 58;
-      return { ...row, freeKick: canThreaten };
+      return { ...row, freeKick: depth != null && depth >= ATTACK_FROM };
     }
     return row;
   });

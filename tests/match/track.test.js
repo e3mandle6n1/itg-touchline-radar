@@ -74,6 +74,23 @@ describe("buildPlayTrack", () => {
     expect(row.text).toBe("Northbridge awarded a free kick in their own half.");
   });
 
+  it("throw-in text stays plain in the team's own half", () => {
+    const [row] = buildPlayTrack({
+      ...matchShell,
+      situations: [
+        {
+          incident: "throwin",
+          team: "home",
+          minute: 7,
+          x: 20,
+          y: 6,
+          text: "Northbridge have an attacking throw-in.",
+        },
+      ],
+    });
+    expect(row.text).toBe("Throw-in for Northbridge.");
+  });
+
   it("events fallback", () => {
     const track = buildPlayTrack({
       ...matchShell,
@@ -152,24 +169,16 @@ describe("groupTimelinePeriods", () => {
 });
 
 describe("situationPhase", () => {
-  it("phase vs sitover", () => {
-    expect(situationPhase({ phase: "attack", incident: "throwin" }, null)).toBe("attack");
-    expect(situationPhase({ phase: "attack", incident: "goal" }, null)).toBeNull();
-  });
-
-  it("phase from depth/shots", () => {
-    expect(
-      situationPhase({ type: "shotontarget", team: "home" }, { x: 80, y: 50 }),
-    ).toBe("dangerous");
-    expect(
-      situationPhase({ type: "match_action", team: "home" }, { x: 80, y: 50 }),
-    ).toBe("dangerous");
-    expect(
-      situationPhase({ type: "match_action", team: "home" }, { x: 50, y: 50 }),
-    ).toBe("attack");
-    expect(
-      situationPhase({ type: "goal_kick", team: "home" }, { x: 10, y: 50 }),
-    ).toBe("safe");
+  it("phase from depth and direction", () => {
+    expect(situationPhase({ incident: "goal", team: "home", x: 90 }, { x: 90 })).toBeNull();
+    expect(situationPhase({ type: "match_action", team: "home" }, { x: 68 })).toBe("attack");
+    expect(situationPhase({ type: "match_action", team: "home" }, { x: 80 })).toBe("dangerous");
+    expect(situationPhase({ type: "match_action", team: "home" }, { x: 50 })).toBe("safe");
+    expect(situationPhase({ type: "throwin", team: "home" }, { x: 90 })).toBe("dangerous");
+    expect(situationPhase({ type: "goal_kick", team: "home" }, { x: 10 })).toBe("safe");
+    expect(situationPhase({ type: "match_action", team: "away" }, { x: 20 }, { x: 10 })).toBe("safe");
+    expect(situationPhase({ type: "match_action", team: "home" }, { x: 80 }, { x: 88 })).toBe("safe");
+    expect(situationPhase({ type: "match_action", team: "home" }, { x: 82 }, { x: 80 })).toBe("dangerous");
   });
 });
 

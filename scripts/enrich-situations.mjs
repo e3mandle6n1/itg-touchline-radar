@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { attackDepth, possessionPhase, ATTACK_FROM, DANGER_FROM } from "../src/match/util.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -64,6 +65,33 @@ function easeInOut(t) {
   return t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2;
 }
 
+function placedSpot(event) {
+  const restart = event.type === "throwin" || event.type === "freekick";
+  const depth = attackDepth(event) ?? (restart ? 40 : null);
+  if (depth == null) return null;
+
+  const x = (d) => clamp(event.team === "home" ? d : 100 - d);
+  const y = Number(event.y);
+  const text = String(event.text || "");
+  const danger = /good position|getting dangerous|dangerous|shooting range|close to the penalty|just outside|deep inside|penalty box|need to be alert|'s area/i.test(text);
+  const opp = /territory|half of|attacking|high up|opposite half|'s half/i.test(text);
+  const own = /own half|\bin their half\b|ball safe/i.test(text);
+
+  if (event.type === "corner") return { x: x(94), y: /left/i.test(text) || y >= 50 ? 94 : 6 };
+  if (event.type === "goal_kick") return { x: x(8), y: 50 };
+  if (["goal", "shotontarget", "shotofftarget", "shotblocked", "goalkeeper_saved"].includes(event.type)) {
+    return { x: x(depth >= DANGER_FROM ? depth : 84), y: clamp(y) };
+  }
+  if (event.type === "offside") return { x: x(depth >= ATTACK_FROM ? depth : 68), y: clamp(y) };
+  if (!restart) return null;
+
+  let spot = depth;
+  if (danger) spot = depth >= DANGER_FROM ? depth : 78;
+  else if (own && !opp) spot = depth < 50 ? depth : 35;
+  else if (opp) spot = depth >= ATTACK_FROM ? depth : 66;
+  return { x: x(spot), y: event.type === "throwin" ? (y >= 50 ? 94 : 6) : clamp(y) };
+}
+
 function clockOf(minute, added = 0) {
   if (minute == null) return "";
   return added ? `${minute}'+${added}` : `${minute}'`;
@@ -73,20 +101,6 @@ function splitTime(t) {
   const whole = Math.max(0, Math.floor(t));
   const added = Math.round((t - whole) * 100);
   return { minute: whole, added, clock: clockOf(whole, added) };
-}
-
-function phaseFor(team, x, type) {
-  if (["shotontarget", "shotofftarget", "shotblocked", "corner", "goalkeeper_saved", "goal"].includes(type)) {
-    return "dangerous";
-  }
-  if (type === "goal_kick" || type === "periodstart" || type === "periodscore" || type === "match_ended") {
-    return "safe";
-  }
-  if (!team || (team !== "home" && team !== "away")) return "safe";
-  const depth = team === "home" ? x : 100 - x;
-  if (depth >= 70) return "dangerous";
-  if (depth >= 45) return "attack";
-  return "safe";
 }
 
 function timeKey(event) {
@@ -120,7 +134,6 @@ function spot(event, overrides = {}) {
   const x = clamp(overrides.x ?? event.x ?? 50);
   const y = clamp(overrides.y ?? event.y ?? 50);
   const team = overrides.team ?? event.team;
-  const type = overrides.type ?? event.type;
   const minute = overrides.minute ?? event.minute;
   const added = overrides.added ?? event.added ?? 0;
   const row = {
@@ -128,7 +141,7 @@ function spot(event, overrides = {}) {
     added,
     clock: overrides.clock ?? event.clock ?? clockOf(minute, added),
     team,
-    phase: overrides.phase ?? phaseFor(team, x, type),
+    phase: overrides.phase ?? possessionPhase(team, x),
     x,
     y,
   };
@@ -176,10 +189,16 @@ function passTargets(a, b, opening = false) {
     pts.push({
       x: clamp(lerp(ax, bx, along) + nx * wobble + nx * drift * 0.3),
       y: clamp(lerp(ay, by, along) + ny * wobble + ny * drift),
-      team: u < 0.72 ? (a.team || b.team) : (b.team || a.team),
+      team: passTeam(a.team, b.team, u),
     });
   }
   return pts;
+}
+
+function passTeam(fromTeam, toTeam, u) {
+  if (fromTeam && toTeam && fromTeam !== toTeam) return u < 0.4 ? fromTeam : toTeam;
+  if (u < 0.72) return fromTeam || toTeam;
+  return toTeam || fromTeam;
 }
 
 function samplePass(from, to, fromT, toT, teamHold) {
@@ -191,6 +210,7 @@ function samplePass(from, to, fromT, toT, teamHold) {
   const steps = Math.max(2, Math.min(6, Math.round(dist / 4.5)));
   const out = [];
   const tEnd = Math.max(fromT + 0.008, toT);
+  let prevX = ax;
 
   for (let i = 1; i <= steps; i += 1) {
     const u = easeInOut(i / steps);
@@ -206,8 +226,9 @@ function samplePass(from, to, fromT, toT, teamHold) {
       added,
       clock,
       type: "match_action",
-      phase: phaseFor(team, clamp(x), "match_action"),
+      phase: possessionPhase(team, clamp(x), prevX),
     }));
+    prevX = x;
   }
   return out;
 }
@@ -275,7 +296,7 @@ function kickoffBuild(from, to, fromT, toT) {
       added: shown.added,
       clock: shown.clock,
       type: "match_action",
-      phase: phaseFor(next.team, clamp(next.x), "match_action"),
+      phase: possessionPhase(next.team, clamp(next.x), prev.x),
     }));
     prev = next;
     prevTime = t;
@@ -306,9 +327,10 @@ function enrichFile(path) {
     if (prev?.type === "match_ended") break;
 
     const isPeriodStart = event.type === "periodstart";
+    const placed = placedSpot(event);
     const hasPitch = event.x != null && event.y != null;
-    const x = isPeriodStart ? CENTRE.x : hasPitch ? clamp(event.x) : lastBall.x;
-    const y = isPeriodStart ? CENTRE.y : hasPitch ? clamp(event.y) : lastBall.y;
+    const x = isPeriodStart ? CENTRE.x : placed ? placed.x : hasPitch ? clamp(event.x) : lastBall.x;
+    const y = isPeriodStart ? CENTRE.y : placed ? placed.y : hasPitch ? clamp(event.y) : lastBall.y;
     const team = event.team || lastBall.team;
 
     let t = timeKey(event);
@@ -348,7 +370,7 @@ function enrichFile(path) {
       minute: shown.minute,
       added: shown.added,
       clock: shown.clock,
-      phase: isPeriodStart ? "safe" : phaseFor(team, x, event.type),
+      phase: isPeriodStart ? "safe" : possessionPhase(team, x),
     }));
 
     prev = cur;
