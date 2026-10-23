@@ -275,7 +275,7 @@ export default function LiveAction({ match, event, ball, score, playing, playTra
         ? (setPiecePhase === "delivery" ? delivery : spot)
         : displayBall(event, ball);
 
-  const phase = situationPhase(event, ballTarget);
+  const phase = situationPhase(event, ballTarget, playTrack[playIndex - 1]);
   const incident = hasSitover(event);
   const attacking = phase === "attack" || phase === "dangerous";
   const shiftKey =

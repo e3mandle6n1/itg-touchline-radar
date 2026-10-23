@@ -115,7 +115,6 @@ const saAway = {
 function openPlaySkeleton(h, a, extras = []) {
   return [
     ev({ type: "periodstart", clock: "1st half", minute: 0, text: "The referee blows to start the match." }),
-    ev({ type: "throwin", team: "home", minute: 3, x: 30, y: 20, text: `Throw-in for ${h}.` }),
     ev({ type: "freekick", team: "away", minute: 12, x: 40, y: 50, text: `Free kick for ${a}.` }),
     ev({ type: "corner", team: "home", minute: 28, x: 95, y: 8, text: `Corner awarded to ${h}.` }),
     ...extras.filter((e) => (e.minute ?? 0) < 45),
@@ -364,7 +363,7 @@ scenarios.push({
   const homeScorers = ["Lindqvist, Nils", "Okoro, Tayo", "Hayes, Owen", "Okonkwo, Chidi"];
   const awayScorers = ["Sato, Ren", "Ndiaye, Kofi"];
   for (let m = 8; m < 90; m += 7) {
-    burst.push(ev({ type: "throwin", team: m % 2 ? "home" : "away", minute: m, x: 20 + (m % 60), y: 20 + (m % 40), text: "Throw-in." }));
+    if (m >= 22) burst.push(ev({ type: "throwin", team: m % 2 ? "home" : "away", minute: m, x: 20 + (m % 60), y: 20 + (m % 40), text: "Throw-in." }));
     if (m % 14 === 0) burst.push(ev({ type: "corner", team: "home", minute: m + 1, x: 96, y: 12, text: "Corner." }));
     if (m % 21 === 0) burst.push(ev({ type: "card", team: "away", minute: m + 2, x: 50, y: 50, player: "Farouk, Samir", card: "yellow", text: "Yellow card." }));
     if ([15, 33, 61, 84].includes(m)) {

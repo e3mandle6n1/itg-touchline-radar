@@ -1,5 +1,5 @@
 import { EVENT_LABELS } from "./constants.js";
-import { clampPitch, clockLabel, attackDepth, eventKind } from "./util.js";
+import { clampPitch, clockLabel, attackDepth, eventKind, possessionPhase, ATTACK_FROM } from "./util.js";
 import { holdFor, hasSitover } from "./events.js";
 import { travelMs, promoteKeeperSaves } from "./ball.js";
 import {
@@ -40,20 +40,22 @@ function withShootoutFlags(rows) {
 
 function reconcileEventText(event, match) {
   const kind = eventKind(event);
-  if (kind !== "freekick" && kind !== "freekick_taken") return event?.text;
+  if (kind !== "throwin" && kind !== "freekick" && kind !== "freekick_taken") return event?.text;
   const depth = attackDepth(event);
   if (depth == null) return event?.text;
 
   const team = event.team === "away" ? match?.away : match?.home;
   const name = team?.name || (event.team === "away" ? "Away" : "Home");
   const text = String(event.text || "");
-  const claimsThreat = /shooting range|dangerous|good position|close to the penalty|outside .+ area|need to be alert|getting dangerous/i.test(text);
-  const claimsOwnHalf = /own half/i.test(text);
+  const claimsThreat = /shooting range|dangerous|good position|close to the penalty|outside .+ area|need to be alert|getting dangerous|attacking/i.test(text);
 
+  if (kind === "throwin") {
+    return depth < ATTACK_FROM && claimsThreat ? `Throw-in for ${name}.` : event.text;
+  }
   if (depth < 48 && claimsThreat) {
     return `${name} awarded a free kick in their own half.`;
   }
-  if (depth >= 55 && claimsOwnHalf) {
+  if (depth >= 55 && /own half/i.test(text)) {
     return `Free kick for ${name} in the opposition half.`;
   }
   return event.text;
@@ -228,42 +230,22 @@ function buildTimeline(events) {
     .sort((a, b) => a.order - b.order);
 }
 
-export function situationPhase(event, ball) {
-  if (event?.phase === "safe" || event?.phase === "attack" || event?.phase === "dangerous") {
-    if (hasSitover(event)) return null;
-    return event.phase;
-  }
-
+export function situationPhase(event, ball, fromBall) {
+  if (hasSitover(event)) return null;
   if (!event?.team || (event.team !== "home" && event.team !== "away")) return null;
-
+  const kind = event.incident || event.type;
   if (
-    event.type === "goal"
-    || event.type === "card"
-    || event.type === "substitution"
-    || event.type === "injury"
-    || event.type === "periodstart"
-    || event.type === "periodscore"
-    || event.type === "match_ended"
-    || event.type === "kickoff"
-    || event.type === "backfrominjury"
-    || event.incident === "periodstart"
-    || event.incident === "kickoff"
+    kind === "periodstart"
+    || kind === "periodscore"
+    || kind === "match_ended"
+    || kind === "kickoff"
+    || kind === "backfrominjury"
   ) {
     return null;
   }
-
   const x = ball?.x ?? (event.x != null ? clampPitch(event.x) : null);
   if (x == null) return null;
-
-  if (["shotontarget", "shotofftarget", "shotblocked", "corner", "goalkeeper_saved"].includes(event.type)) {
-    return "dangerous";
-  }
-  if (event.type === "goal_kick") return "safe";
-
-  const depth = event.team === "home" ? x : 100 - x;
-  if (depth >= 70) return "dangerous";
-  if (depth >= 45) return "attack";
-  return "safe";
+  return possessionPhase(event.team, x, fromBall?.x);
 }
 
 export function dwellFor(event, fromBall, toBall) {
