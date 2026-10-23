@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "start": "vite --port 4173 --strictPort",
     "enrich": "node scripts/enrich-situations.mjs",
-    "enrich:all": "node scripts/enrich-situations.mjs public/match.json public/matches",
+    "enrich:all": "node scripts/enrich-situations.mjs feeds/match.json feeds/matches",
     "scenarios": "node scripts/generate-scenarios.mjs",
     "test": "vitest run",
     "test:watch": "vitest"

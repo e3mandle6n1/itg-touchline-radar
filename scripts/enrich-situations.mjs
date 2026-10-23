@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 function resolveTargets(targets) {
-  if (!targets.length) return [join(root, "public/match.json")];
+  if (!targets.length) return [join(root, "feeds/match.json")];
   const out = [];
   for (const target of targets) {
     const abs = join(root, target);
