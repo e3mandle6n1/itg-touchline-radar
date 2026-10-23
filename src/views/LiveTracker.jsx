@@ -35,7 +35,7 @@ export default function LiveTracker({ match, playback }) {
         playTrack={playTrack}
         playIndex={index}
       />
-      {!preview && <Caption event={event} match={match} />}
+      {!preview && <Caption event={event} match={match} fromBall={playTrack[index - 1]} />}
       <MatchTabs
         match={match}
         timeline={timeline}

@@ -1,6 +1,6 @@
-import { iconFor, PHASE_LABELS } from "../match";
+import { iconFor, PHASE_LABELS, situationPhase } from "../match";
 
-export default function Caption({ event, match }) {
+export default function Caption({ event, match, fromBall }) {
   if (!event) return null;
 
   const teamName = event.team === "away"
@@ -8,7 +8,8 @@ export default function Caption({ event, match }) {
     : event.team === "home"
       ? match?.home?.name
       : "";
-  const phaseLabel = PHASE_LABELS[event.phase];
+  const phase = situationPhase(event, event, fromBall);
+  const phaseLabel = phase ? PHASE_LABELS[phase] : "";
   const text = event.text
     || (phaseLabel && teamName ? `${teamName} · ${phaseLabel}` : phaseLabel)
     || event.type;

@@ -43,3 +43,18 @@ export function attackDepth(event) {
   if (!Number.isFinite(x) || (event?.team !== "home" && event?.team !== "away")) return null;
   return event.team === "away" ? 100 - x : x;
 }
+
+export const ATTACK_FROM = 60;
+export const DANGER_FROM = 75;
+
+export function possessionPhase(team, x, fromX) {
+  const depth = attackDepth({ team, x });
+  if (depth == null) return "safe";
+  if (fromX != null) {
+    const fromDepth = attackDepth({ team, x: fromX });
+    if (fromDepth != null && fromDepth - depth >= 4) return "safe";
+  }
+  if (depth >= DANGER_FROM) return "dangerous";
+  if (depth >= ATTACK_FROM) return "attack";
+  return "safe";
+}
