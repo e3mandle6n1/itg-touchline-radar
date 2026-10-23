@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-const feedsRoot = fileURLToPath(new URL("./feeds", import.meta.url));
+const feedsRoot = process.env.FEEDS_ROOT || fileURLToPath(new URL("./feeds", import.meta.url));
 
 function serveFeeds() {
   const send = (req, res, next) => {
@@ -31,9 +31,12 @@ function serveFeeds() {
 export default defineConfig({
   plugins: [react(), serveFeeds()],
   server: {
-    host: "127.0.0.1",
+    host: process.env.HOST || "127.0.0.1",
     port: 4173,
     strictPort: true,
+    proxy: {
+      "/live": process.env.BRIDGE_URL || "http://127.0.0.1:8787",
+    },
   },
   test: {
     environment: "node",
