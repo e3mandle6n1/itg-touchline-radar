@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * Builds public/matches/*.json scenario feeds (lean events), then enrich separately.
+ * Builds feeds/matches/*.json scenario feeds (lean events), then enrich separately.
  */
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const outDir = join(root, "public", "matches");
+const outDir = join(root, "feeds", "matches");
 mkdirSync(outDir, { recursive: true });
 
-const base = JSON.parse(readFileSync(join(root, "public", "match.json"), "utf8"));
+const base = JSON.parse(readFileSync(join(root, "feeds", "match.json"), "utf8"));
 
 const STATS = base.stats;
 const STANDINGS = (base.standings || []).slice(0, 12);
@@ -138,7 +138,7 @@ function finish90(score, extras = []) {
 const scenarios = [];
 
 // 01 default copy
-copyFileSync(join(root, "public", "match.json"), join(outDir, "01-northbridge.json"));
+copyFileSync(join(root, "feeds", "match.json"), join(outDir, "01-northbridge.json"));
 scenarios.push({
   id: "01-northbridge",
   title: "Northbridge 3-0 Rivermark",
