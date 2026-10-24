@@ -2,11 +2,15 @@ node_modules/
 dist/
 .tmp/
 
+**/bin/
+**/obj/
+
 .env
 .env.*
 !.env.example
 
 feeds/
+matches/
 
 *.log
 npm-debug.log*
