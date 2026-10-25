@@ -106,6 +106,15 @@ export function holdFor(event) {
       return 1100;
     case "match_action":
       return 320;
+    case "pass":
+      return 420;
+    case "possession":
+      return 380;
+    case "pressure":
+      return 520;
+    case "tackle":
+    case "interception":
+      return 700;
     case "kickoff":
       return 1800;
     case "periodstart":
