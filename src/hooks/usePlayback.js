@@ -31,7 +31,13 @@ function startPlayIndex(playTrack) {
 }
 
 export function usePlayback(match, { live = false, feedDone = true } = {}) {
-  const playTrack = useMemo(() => buildPlayTrack(match), [match]);
+  const situationCount = match?.situations?.length ?? 0;
+  const playTrack = useMemo(
+    () => buildPlayTrack(match),
+    // Rebuild when the live buffer grows; avoid thrashing on identical fixture object churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [match?.id, situationCount, live ? situationCount : match],
+  );
   const timeline = useMemo(() => buildIncidentTimeline(playTrack), [playTrack]);
   const passes = useMemo(() => buildPasses(playTrack), [playTrack]);
   const playTrackRef = useRef(playTrack);
@@ -81,7 +87,8 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
     [timeline, index],
   );
 
-  // Only re-arm the dwell when waiting on an empty/tip buffer for more feed.
+  // Re-arm dwell when the live buffer grows, and keep a heartbeat while waiting on tip
+  // so a stalled SSE cannot leave playing=true with no timer forever.
   const tipWaitKey = playing && live && !feedDone && atTip ? playTrack.length : 0;
 
   const pause = useCallback(() => setPlaying(false), []);
@@ -121,14 +128,28 @@ export function usePlayback(match, { live = false, feedDone = true } = {}) {
     const track = playTrackRef.current;
     if (track.length === 0) return undefined;
     if (index >= track.length - 1) {
-      if (!live || feedDone) setPlaying(false);
-      return undefined;
+      if (!live || feedDone) {
+        setPlaying(false);
+        return undefined;
+      }
+      // Live tip: poll briefly so we notice new situations even if length dep glitches.
+      const wait = setTimeout(() => {
+        const latest = playTrackRef.current;
+        if (latest.length - 1 > index) {
+          setIndex((i) => Math.min(i + 1, latest.length - 1));
+        }
+      }, 320);
+      return () => clearTimeout(wait);
     }
     const pass = passFrom(passesRef.current, index);
     const current = track[index];
     const from = ballAt(track, pass ? index : prevBallIndex(track, index));
     const to = pass ? pass.to : displayBall(current, ballAt(track, index));
-    const ms = pass ? travelMs(from, to, PASS_SPEED) + 180 : dwellFor(current, from, to);
+    // Never advance before the ball can finish the trip — stops trail breaks / teleports.
+    const moveMs = travelMs(from, to, PASS_SPEED);
+    const holdMs = pass ? 140 : dwellFor(current, from, to);
+    const rawMs = Math.max(moveMs + 60, holdMs);
+    const ms = Number.isFinite(rawMs) ? Math.max(120, rawMs) : 280;
     const jumpTo = pass ? pass.end : null;
     const timer = setTimeout(() => {
       setIndex((i) => {

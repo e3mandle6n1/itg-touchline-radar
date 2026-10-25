@@ -3,6 +3,7 @@ import BallSpot from "./BallSpot.jsx";
 import GoalBurst from "./GoalBurst.jsx";
 import PitchIncident from "./PitchIncident.jsx";
 import SituationBanner from "./SituationBanner.jsx";
+import PitchStatTicker from "./PitchStatTicker.jsx";
 import CornerPulse from "./CornerPulse.jsx";
 import SetPieceFunnel from "./SetPieceFunnel.jsx";
 import GoalTip, { ShotTip, SaveTip, KickoffTip } from "../tips/GoalTip.jsx";
@@ -44,6 +45,7 @@ import {
   shotOrigin,
   situationPhase,
   travelMs,
+  explainMoment,
 } from "../../match";
 
 const SITUATION_DWELL_MS = 1600;
@@ -316,9 +318,14 @@ export default function LiveAction({ match, event, ball, score, playing, playTra
   }, [shiftPulse]);
 
   const showSituation = Boolean(shiftPulse);
-  const bannerEvent = shiftPulse
-    ? { ...event, team: shiftPulse.team }
-    : event;
+  const insight = useMemo(
+    () => explainMoment(playTrack, playIndex, match),
+    [playTrack, playIndex, match],
+  );
+  const bannerEvent = {
+    ...(shiftPulse ? { ...event, team: shiftPulse.team } : event),
+    ...(insight?.state ? { state: insight.state, importance: insight.importance } : {}),
+  };
   const bannerPhase = shiftPulse?.phase ?? phase;
 
   const label = EVENT_LABELS[event?.type];
@@ -550,6 +557,15 @@ export default function LiveAction({ match, event, ball, score, playing, playTra
           match={match}
           event={event}
           score={score}
+        />
+      ) : null}
+      {!inPens ? (
+        <PitchStatTicker
+          match={match}
+          event={event}
+          playTrack={playTrack}
+          playIndex={playIndex}
+          playing={playing}
         />
       ) : null}
     </>

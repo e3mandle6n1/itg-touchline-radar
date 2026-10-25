@@ -2,8 +2,16 @@ const EPSILON = 6;
 const MIN_LEN = 6;
 const MAX_LEN = 40;
 
+/** Open-play texture that should stay in one pass run (not a hard break). */
+const FLOW_KINDS = new Set(["pass", "possession", "pressure", "match_action"]);
+
 function isOpenPlay(row) {
-  return row?.x != null && row?.y != null && !row.incident;
+  if (row?.x == null || row?.y == null) return false;
+  const kind = row.incident || row.type;
+  if (!kind) return true;
+  // Set pieces / shots / cards break the run; pass/pressure keep the chain alive.
+  if (FLOW_KINDS.has(kind)) return true;
+  return !row.incident;
 }
 
 function distToSegment(point, a, b) {
