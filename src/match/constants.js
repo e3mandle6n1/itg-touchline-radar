@@ -15,6 +15,11 @@ export const EVENT_LABELS = {
   injury: "Injured",
   kickoff: "Kick-off",
   periodstart: "Kick-off",
+  pass: "Pass",
+  tackle: "Tackle",
+  interception: "Interception",
+  pressure: "Pressure",
+  possession: "Possession",
 };
 
 export const SITOVER_TYPES = new Set([
@@ -45,8 +50,8 @@ export const PHASE_LABELS = {
   dangerous: "Dangerous Attack",
 };
 
-export const BALL_SPEED = 36;
-export const PASS_SPEED = 34;
+export const BALL_SPEED = 34;
+export const PASS_SPEED = 30;
 export const MATCH_ANNOUNCE_MS = 2200;
 
 export const EVENT_ICONS = {
@@ -69,4 +74,9 @@ export const EVENT_ICONS = {
   periodscore: "period",
   match_ended: "period",
   kickoff: "period",
+  pass: "period",
+  tackle: "period",
+  interception: "period",
+  pressure: "period",
+  possession: "period",
 };

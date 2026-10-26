@@ -78,3 +78,8 @@ export {
   winChance,
   goalsByPeriod,
 } from "./preview.js";
+export {
+  explainMoment,
+  insightHeadline,
+  MATCH_STATE_LABELS,
+} from "./insight.js";
