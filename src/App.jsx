@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import Transport from "./components/Transport.jsx";
+import { UiProvider, useUi } from "./context/UiContext.jsx";
 import { useHubFeed } from "./hooks/useHubFeed.js";
 import { usePlayback } from "./hooks/usePlayback.js";
+import LangPicker from "./components/LangPicker.jsx";
+import ThemeSwitch from "./components/ThemeSwitch.jsx";
 import LiveTracker from "./views/LiveTracker.jsx";
+import StudioShell from "./views/StudioShell.jsx";
 
 function readParam(name) {
   try {
@@ -12,16 +16,7 @@ function readParam(name) {
   }
 }
 
-function writeParams({ match, live }) {
-  const url = new URL(window.location.href);
-  if (match) url.searchParams.set("match", match);
-  else url.searchParams.delete("match");
-  if (live) url.searchParams.set("live", "1");
-  else url.searchParams.delete("live");
-  window.history.replaceState({}, "", url);
-}
-
-function Tracker({ match, live, feedDone, bridge }) {
+function Tracker({ match, feedDone, bridge, live }) {
   const playback = usePlayback(match, { live, feedDone });
   const clock = playback.ended || playback.event?.type === "match_ended"
     ? "FT"
@@ -44,7 +39,7 @@ function Tracker({ match, live, feedDone, bridge }) {
   }, [playback.toggle]);
 
   return (
-    <>
+    <StudioShell>
       <main>
         <LiveTracker match={match} playback={playback} />
       </main>
@@ -55,24 +50,23 @@ function Tracker({ match, live, feedDone, bridge }) {
         playing={playback.playing}
         onToggle={playback.toggle}
         onSeek={playback.seek}
-        live={live}
         bridge={bridge}
       />
-    </>
+    </StudioShell>
   );
 }
 
-export default function App() {
+function AppShell({ matchId, setMatchId }) {
+  const { t } = useUi();
   const [catalog, setCatalog] = useState(null);
-  const [matchId, setMatchId] = useState(() => readParam("match"));
-  const [live, setLive] = useState(() => readParam("live") === "1");
-  const [sourceMatch, setSourceMatch] = useState(null);
+  const [bootMatch, setBootMatch] = useState(null);
   const [error, setError] = useState("");
+  const [feedReady, setFeedReady] = useState(false);
 
-  const bridge = useHubFeed(matchId, { enabled: live });
+  const bridge = useHubFeed(matchId, { enabled: feedReady && Boolean(matchId) });
 
   useEffect(() => {
-    fetch("/matches/index.json")
+    fetch("/api/catalog")
       .then((response) => {
         if (!response.ok) throw new Error("Could not load match catalog");
         return response.json();
@@ -85,50 +79,58 @@ export default function App() {
         });
       })
       .catch((err) => setError(err.message));
-  }, []);
+  }, [setMatchId]);
 
   useEffect(() => {
-    if (!catalog || !matchId || live) return undefined;
-    const entry = catalog.matches.find((row) => row.id === matchId);
-    if (!entry) {
+    if (!catalog || !matchId) return undefined;
+    if (!catalog.matches.some((row) => row.id === matchId)) {
       setError(`Unknown match: ${matchId}`);
       return undefined;
     }
-    writeParams({ match: matchId, live });
-    setSourceMatch(null);
+
     setError("");
+    setBootMatch(null);
+    setFeedReady(false);
     let cancelled = false;
-    fetch(`/matches/${entry.file}`)
+
+    fetch(`/api/matches/${matchId}`)
       .then((response) => {
-        if (!response.ok) throw new Error(`Could not load ${entry.file}`);
+        if (!response.ok) throw new Error(`Could not load ${matchId}`);
         return response.json();
       })
       .then((data) => {
-        if (!cancelled) setSourceMatch(data);
+        if (!cancelled) setBootMatch(data);
       })
       .catch((err) => {
         if (!cancelled) setError(err.message);
       });
+
+    fetch(`/api/publish/${matchId}`, { method: "POST" })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Could not publish ${matchId}`);
+        if (!cancelled) setFeedReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setFeedReady(false);
+      });
+
     return () => {
       cancelled = true;
     };
-  }, [catalog, matchId, live]);
-
-  useEffect(() => {
-    if (!matchId) return;
-    writeParams({ match: matchId, live });
-  }, [matchId, live]);
+  }, [catalog, matchId]);
 
   const entry = catalog?.matches.find((row) => row.id === matchId);
-  const match = live ? bridge.match : sourceMatch;
-  const feedError = live ? bridge.error : "";
+  const live = Boolean(bridge.match && bridge.received > 0);
+  const match = live ? bridge.match : bootMatch;
   let feedLabel = null;
-  if (live && !bridge.total) feedLabel = "Bridge · waiting";
-  if (live && bridge.total) {
-    const count = `${bridge.received}/${bridge.total}`;
-    if (bridge.done) feedLabel = `Bridge · done ${count}`;
-    else if (bridge.streaming) feedLabel = `Bridge · ${count}`;
-    else feedLabel = `Bridge · paused ${count}`;
+  if (feedReady) {
+    if (!bridge.total) feedLabel = t("bridgeWaiting");
+    else {
+      const count = `${bridge.received}/${bridge.total}`;
+      if (bridge.done) feedLabel = `${t("bridgeDone")} ${count}`;
+      else if (bridge.streaming) feedLabel = `Bridge · ${count}`;
+      else feedLabel = `${t("bridgePaused")} ${count}`;
+    }
   }
 
   return (
@@ -139,11 +141,11 @@ export default function App() {
           <div className="app-bar-controls">
             {catalog ? (
               <label className="match-picker">
-                <span className="match-picker-label">Match</span>
+                <span className="match-picker-label">{t("match")}</span>
                 <select
                   value={matchId}
                   onChange={(event) => setMatchId(event.target.value)}
-                  aria-label="Select match"
+                  aria-label={t("match")}
                 >
                   {catalog.matches.map((row) => (
                     <option key={row.id} value={row.id}>{row.title}</option>
@@ -151,17 +153,11 @@ export default function App() {
                 </select>
               </label>
             ) : null}
-            <label className="mode-picker">
-              <span className="match-picker-label">Mode</span>
-              <select
-                value={live ? "bridge" : "replay"}
-                onChange={(event) => setLive(event.target.value === "bridge")}
-                aria-label="Playback mode"
-              >
-                <option value="replay">Replay</option>
-                <option value="bridge">Bridge</option>
-              </select>
-            </label>
+            <div className="app-bar-tools" role="group" aria-label="Display">
+              <ThemeSwitch />
+              <span className="app-bar-divider" aria-hidden="true" />
+              <LangPicker />
+            </div>
           </div>
         </div>
         {match ? (
@@ -170,20 +166,30 @@ export default function App() {
             {feedLabel ? ` · ${feedLabel}` : ""}
           </p>
         ) : entry ? (
-          <p>{entry.title}{live ? " · Bridge" : ""}</p>
+          <p>{entry.title}{feedLabel ? ` · ${feedLabel}` : ""}</p>
         ) : null}
       </header>
-      {error || feedError ? <p className="error">{error || feedError}</p> : null}
-      {!error && !feedError && !match ? <p className="loading">Loading match...</p> : null}
+      {error ? <p className="error">{error}</p> : null}
+      {!error && !match ? <p className="loading">{t("loading")}</p> : null}
       {match ? (
         <Tracker
-          key={`${matchId}-${live ? "bridge" : "replay"}`}
+          key={`${matchId}-${live ? "live" : "boot"}`}
           match={match}
           live={live}
           feedDone={!live || bridge.done}
-          bridge={live ? bridge : null}
+          bridge={feedReady ? bridge : null}
         />
       ) : null}
     </>
+  );
+}
+
+export default function App() {
+  const [matchId, setMatchId] = useState(() => readParam("match"));
+
+  return (
+    <UiProvider matchId={matchId}>
+      <AppShell matchId={matchId} setMatchId={setMatchId} />
+    </UiProvider>
   );
 }

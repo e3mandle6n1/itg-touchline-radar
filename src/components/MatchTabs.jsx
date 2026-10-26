@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useUi } from "../context/UiContext.jsx";
 import HeadToHead from "./HeadToHead.jsx";
 import LineupsPanel from "./LineupsPanel.jsx";
 import StandingsTable from "./StandingsTable.jsx";
 import StatBars from "./StatBars.jsx";
 import { iconFor, liveTimelineRows, statsAt } from "../match";
 
-const TABS = [
-  ["timeline", "Timeline", "tab-timeline"],
-  ["statistics", "Statistics", "tab-statistics"],
-  ["head", "Head to head", "tab-h2h"],
-  ["standings", "Standings", "tab-standings"],
-  ["lineups", "Lineups", "tab-lineups"],
+const TAB_IDS = [
+  ["timeline", "tabTimeline", "tab-timeline"],
+  ["statistics", "tabStatistics", "tab-statistics"],
+  ["head", "tabHead", "tab-h2h"],
+  ["standings", "tabStandings", "tab-standings"],
+  ["lineups", "tabLineups", "tab-lineups"],
 ];
 
 export function nextTabClick(tab, sheetOpen, id) {
@@ -19,6 +20,7 @@ export function nextTabClick(tab, sheetOpen, id) {
 }
 
 function Statistics({ match, playTrack, playIndex }) {
+  const { t } = useUi();
   const [page, setPage] = useState(0);
   const live = useMemo(
     () => statsAt(playTrack, playIndex, match.stats),
@@ -30,7 +32,7 @@ function Statistics({ match, playTrack, playIndex }) {
   return (
     <>
       <div className="pager">
-        <span>Statistics</span>
+        <span>{t("statistics")}</span>
         <span className="pager-controls">
           <button type="button" aria-label="Previous page" onClick={() => setPage((p) => (p + live.pages.length - 1) % live.pages.length)}>
             <img src="/icons/chevron-left.svg" alt="" />
@@ -63,6 +65,7 @@ function Statistics({ match, playTrack, playIndex }) {
 }
 
 function TimelineList({ timeline, index, onSeek, sheetRef }) {
+  const { t } = useUi();
   const rows = useMemo(() => liveTimelineRows(timeline, index), [timeline, index]);
 
   useEffect(() => {
@@ -72,7 +75,7 @@ function TimelineList({ timeline, index, onSeek, sheetRef }) {
 
   return (
     <div className="tl-live">
-      <div className="tl-heading">Timeline</div>
+      <div className="tl-heading">{t("timeline")}</div>
       <ol className="tl">
         {rows.map((event) => {
           const i = event.markIndex;
@@ -96,6 +99,7 @@ function TimelineList({ timeline, index, onSeek, sheetRef }) {
 }
 
 export default function MatchTabs({ match, timeline, index, onSeek, playTrack, playIndex, preview }) {
+  const { t } = useUi();
   const [tab, setTab] = useState("timeline");
   const [sheetOpen, setSheetOpen] = useState(true);
   const sheetRef = useRef(null);
@@ -109,7 +113,7 @@ export default function MatchTabs({ match, timeline, index, onSeek, playTrack, p
   return (
     <>
       <div className="tabs" role="tablist">
-        {TABS.map(([id, label, icon]) => (
+        {TAB_IDS.map(([id, labelKey, icon]) => (
           <button
             key={id}
             type="button"
@@ -120,7 +124,7 @@ export default function MatchTabs({ match, timeline, index, onSeek, playTrack, p
             onClick={() => selectTab(id)}
           >
             <img src={`/icons/${icon}.svg`} alt="" />
-            <span>{label}</span>
+            <span>{t(labelKey)}</span>
           </button>
         ))}
       </div>
@@ -136,7 +140,7 @@ export default function MatchTabs({ match, timeline, index, onSeek, playTrack, p
           {tab === "standings" && <StandingsTable rows={match.standings} />}
           {tab === "timeline" && (preview ? (
             <div className="tl-live">
-              <div className="tl-heading">Timeline</div>
+              <div className="tl-heading">{t("timeline")}</div>
               <p className="tl-wait">Waiting for kickoff.</p>
             </div>
           ) : (
