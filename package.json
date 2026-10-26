@@ -7,14 +7,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "vite --port 4173 --strictPort",
-    "enrich": "node scripts/enrich-situations.mjs",
-    "enrich:all": "node scripts/enrich-situations.mjs feeds/match.json feeds/matches",
-    "scenarios": "node scripts/generate-scenarios.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@azure/event-hubs": "^6.0.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
