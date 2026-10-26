@@ -1,3 +1,5 @@
+import { useUi } from "../context/UiContext.jsx";
+
 export default function Transport({
   clock,
   index,
@@ -5,24 +7,25 @@ export default function Transport({
   playing,
   onToggle,
   onSeek,
-  live = false,
-  bridge = null,
+  bridge,
 }) {
+  const { t } = useUi();
+
   return (
     <footer className="transport">
-      <button type="button" onClick={onToggle}>{playing ? "Pause" : "Play"}</button>
-      {live && bridge ? (
+      <button type="button" onClick={onToggle}>{playing ? t("pause") : t("play")}</button>
+      {bridge ? (
         <button
           type="button"
           className="transport-feed"
           onClick={bridge.running ? bridge.pause : bridge.resume}
           disabled={bridge.done}
         >
-          {bridge.done ? "Feed done" : bridge.running ? "Hold feed" : "Resume feed"}
+          {bridge.done ? t("feedDone") : bridge.running ? t("holdFeed") : t("resumeFeed")}
         </button>
       ) : null}
       <span className="clock">{clock}</span>
-      {live && bridge ? (
+      {bridge ? (
         <span className="feed-meter" aria-label="Bridge buffer">
           {bridge.received}/{bridge.total}
         </span>
