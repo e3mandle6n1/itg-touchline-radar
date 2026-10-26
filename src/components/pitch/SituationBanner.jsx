@@ -1,4 +1,4 @@
-import { PHASE_LABELS } from "../../match";
+import { PHASE_LABELS, MATCH_STATE_LABELS } from "../../match";
 
 function AttackWedge() {
   return (
@@ -34,12 +34,16 @@ export default function SituationBanner({ match, event, phase }) {
   const team = event.team === "away" ? match.away : match.home;
   const side = event.team === "away" ? "away" : "home";
   const label = PHASE_LABELS[phase] || phase;
+  const state = event.state && event.importance !== "low"
+    ? (MATCH_STATE_LABELS[event.state] || event.state)
+    : "";
 
   return (
     <div
-      className={`situation situation-${side} situation-${phase}`}
+      className={`situation situation-${side} situation-${phase}${event.state ? ` situation-state-${event.state}` : ""}`}
       data-phase={phase}
       data-side={side}
+      data-state={event.state || ""}
     >
       <div className="situation-wedge" aria-hidden="true">
         <AttackWedge />
@@ -47,6 +51,7 @@ export default function SituationBanner({ match, event, phase }) {
       <div className="situation-copy">
         <strong className="situation-team">{team.name}</strong>
         <span className="situation-label">{label}</span>
+        {state ? <span className="situation-state">{state}</span> : null}
       </div>
     </div>
   );

@@ -78,7 +78,8 @@ export default function BallSpot({
     }
     const from = lastTarget.current;
     const gap = Math.hypot(ball.x - from.x, ball.y - from.y);
-    flightFrom.current = gap > 4 && gap < 55 ? { x: from.x, y: from.y } : null;
+    // Keep drawing through short hops and longer switches; only skip tiny jitter.
+    flightFrom.current = gap > 1.6 ? { x: from.x, y: from.y } : null;
     lastTarget.current = { x: ball.x, y: ball.y };
   }, [ball.x, ball.y, team, playing, curved]);
 
@@ -90,22 +91,25 @@ export default function BallSpot({
       line.setAttribute("y1", from.y);
       line.setAttribute("x2", pos.x);
       line.setAttribute("y2", pos.y);
-      line.style.opacity = "0.8";
+      line.style.opacity = "0.85";
     } else if (line) {
       line.style.opacity = "0";
     }
 
     const gapToTarget = Math.hypot(ball.x - pos.x, ball.y - pos.y);
-    if (from && gapToTarget < 0.4) {
+    if (from && gapToTarget < 0.35) {
       flightFrom.current = null;
-      const next = [...keptRef.current, {
-        x: from.x,
-        y: from.y,
-        tx: ball.x,
-        ty: ball.y,
-      }].slice(-5);
-      keptRef.current = next;
-      setPasses(next);
+      const len = Math.hypot(ball.x - from.x, ball.y - from.y);
+      if (len >= 2) {
+        const next = [...keptRef.current, {
+          x: from.x,
+          y: from.y,
+          tx: ball.x,
+          ty: ball.y,
+        }].slice(-6);
+        keptRef.current = next;
+        setPasses(next);
+      }
       if (line) line.style.opacity = "0";
     }
 

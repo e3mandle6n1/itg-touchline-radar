@@ -45,7 +45,7 @@ describe("buildPasses", () => {
     expect(passes.at(-1).to).toEqual({ x: 30, y: 86 });
   });
 
-  it("splits on team and on an incident", () => {
+  it("splits on team and on a hard incident", () => {
     const track = [
       spot(10, 40),
       spot(24, 40),
@@ -60,6 +60,19 @@ describe("buildPasses", () => {
     expect(passes.some((pass) => pass.team === "home")).toBe(true);
     expect(passes.some((pass) => pass.team === "away")).toBe(true);
     expect(passes.every((pass) => pass.end < 5 || pass.start > 5)).toBe(true);
+  });
+
+  it("keeps pass/possession/pressure in one open-play run", () => {
+    const track = [
+      spot(20, 50),
+      spot(28, 52, { incident: "pass", type: "pass" }),
+      spot(36, 48, { incident: "possession", type: "possession" }),
+      spot(44, 50, { incident: "pressure", type: "pressure" }),
+      spot(55, 50),
+    ];
+    const passes = buildPasses(track);
+    expect(passes.length).toBeGreaterThanOrEqual(1);
+    expect(passes.some((pass) => pass.start === 0 && pass.end === 4)).toBe(true);
   });
 
   it("passFrom is the pass still in flight", () => {
